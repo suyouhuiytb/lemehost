@@ -1,23 +1,24 @@
-name: Lemehost Cookie AutoStart
+name: Auto Login (Captcha) + Cookie Start
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # 每 5 分钟
-  workflow_dispatch:        # 手动触发
+    - cron: "0 */6 * * *"   # 例：每 6 小时刷一次 Cookie（视站点过期策略调整）
+  workflow_dispatch:
 
 jobs:
-  autostart:
+  run:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
     env:
-      PANEL_BASE: ${{ secrets.PANEL_BASE }}   # 例如 https://lemehost.com 或 https://panel.lemehost.com
-      SERVER_IDS: ${{ secrets.SERVER_IDS }}   # 短 UUID，可多个：abc123,def456
-      COOKIE: ${{ secrets.COOKIE }}           # 浏览器完整 Cookie：pterodactyl_session=...; XSRF-TOKEN=...; [cf_clearance=...]
-      CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}   # 可选；留空则脚本会从 XSRF-TOKEN Cookie 自动提取
-      TIMEOUT: "20"
+      PANEL_BASE: ${{ secrets.PANEL_BASE }}
+      EMAIL: ${{ secrets.EMAIL }}
+      PASSWORD: ${{ secrets.PASSWORD }}
+      CAP_PROVIDER: "2captcha"
+      CAP_API_KEY: ${{ secrets.CAP_API_KEY }}
+      SERVER_IDS: ${{ secrets.SERVER_IDS }}
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -25,7 +26,22 @@ jobs:
           python-version: "3.11"
 
       - name: Install deps
+        run: |
+          pip install --no-cache-dir requests playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Login and grab cookie
+        id: login
+        run: |
+          python login_and_dump_cookie.py | tee login.out
+          echo "cookie=$(grep '^COOKIE=' login.out | sed 's/^COOKIE=//')" >> "$GITHUB_OUTPUT"
+
+      - name: Install requests for autostart
         run: pip install --no-cache-dir requests
 
-      - name: Run auto-start
-        run: python leme_cookie_autostart.py
+      - name: Auto start via cookie
+        env:
+          COOKIE: ${{ steps.login.outputs.cookie }}
+          CSRF_TOKEN: ""   # 可留空，脚本会从 XSRF-TOKEN cookie 自动提取
+        run: |
+          python leme_cookie_autostart.py
