@@ -1,47 +1,28 @@
-name: Auto Login (Captcha) + Cookie Start
+name: Lemehost UI-Cookie AutoStart
 
 on:
   schedule:
-    - cron: "0 */6 * * *"   # 例：每 6 小时刷一次 Cookie（视站点过期策略调整）
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
-  run:
+  autostart:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 4
     env:
-      PANEL_BASE: ${{ secrets.PANEL_BASE }}
-      EMAIL: ${{ secrets.EMAIL }}
-      PASSWORD: ${{ secrets.PASSWORD }}
-      CAP_PROVIDER: "2captcha"
-      CAP_API_KEY: ${{ secrets.CAP_API_KEY }}
-      SERVER_IDS: ${{ secrets.SERVER_IDS }}
-
+      PANEL_BASE: ${{ secrets.PANEL_BASE }}     # 例如 https://lemehost.com
+      SERVER_IDS: ${{ secrets.SERVER_IDS }}     # 短 UUID，例：abc123,def456
+      COOKIE: ${{ secrets.COOKIE }}             # 登录后复制的完整 Cookie（含 pterodactyl_session、XSRF-TOKEN、若有 cf_clearance 也需）
+      CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}     # 可选；留空则脚本会自动从 Cookie 或页面 <meta> 解析
+      TIMEOUT: "20"
+      SERVER_LIST_PATH: "/"                     # 可按需改成你的“Servers”列表页路径
+      VIEW_PATH_TEMPLATE: "/server/{id}"        # 如果你的“View”是 /servers/{id}/view，就改为 "/servers/{id}/view"
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install deps
-        run: |
-          pip install --no-cache-dir requests playwright
-          python -m playwright install --with-deps chromium
-
-      - name: Login and grab cookie
-        id: login
-        run: |
-          python login_and_dump_cookie.py | tee login.out
-          echo "cookie=$(grep '^COOKIE=' login.out | sed 's/^COOKIE=//')" >> "$GITHUB_OUTPUT"
-
-      - name: Install requests for autostart
         run: pip install --no-cache-dir requests
-
-      - name: Auto start via cookie
-        env:
-          COOKIE: ${{ steps.login.outputs.cookie }}
-          CSRF_TOKEN: ""   # 可留空，脚本会从 XSRF-TOKEN cookie 自动提取
-        run: |
-          python leme_cookie_autostart.py
+      - name: Run auto-start (UI flow)
+        run: python leme_cookie_ui_autostart.py
