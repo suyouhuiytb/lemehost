@@ -13,9 +13,7 @@ jobs:
       PANEL_BASE: ${{ secrets.PANEL_BASE }}     # https://lemehost.com
       SERVER_IDS: ${{ secrets.SERVER_IDS }}     # 3302157
       COOKIE: ${{ secrets.COOKIE }}             # 完整 cookie
-      CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}     # x-csrf-token
-      TIMEOUT: "20"
-      VIEW_PATH_TEMPLATE: "/server/{id}/free-plan"  # 仅用于续期
+      TIMEOUT: "20"                             # 硬编码超时时间
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
