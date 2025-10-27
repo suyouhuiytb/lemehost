@@ -50,9 +50,10 @@ def renew_server(session: requests.Session, base: str, sid: str, timeout: int) -
     )
     try:
         r = session.post(url, data=body, timeout=timeout)
-        if r.status_code == 200:
-            return True, "200 OK"
-        return False, f"{r.status_code} {r.text[:300]}"
+        response_text = r.text[:300]  # 取前 300 字符
+        if r.status_code == 200 and "success" in response_text.lower():
+            return True, f"200 OK - {response_text}"
+        return False, f"{r.status_code} {response_text}"
     except Exception as e:
         return False, f"Error: {str(e)}"
 
