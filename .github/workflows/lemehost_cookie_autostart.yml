@@ -2,7 +2,7 @@ name: Lemehost UI-Cookie AutoStart
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/5 * * * *"  # 每 5 分钟触发
   workflow_dispatch:
 
 jobs:
@@ -10,13 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 4
     env:
-      PANEL_BASE: ${{ secrets.PANEL_BASE }}     # 例如 https://lemehost.com
-      SERVER_IDS: ${{ secrets.SERVER_IDS }}     # 短 UUID，例：abc123,def456
-      COOKIE: ${{ secrets.COOKIE }}             # 登录后复制的完整 Cookie（含 pterodactyl_session、XSRF-TOKEN、若有 cf_clearance 也需）
-      CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}     # 可选；留空则脚本会自动从 Cookie 或页面 <meta> 解析
+      PANEL_BASE: ${{ secrets.PANEL_BASE }}     # https://lemehost.com
+      SERVER_IDS: ${{ secrets.SERVER_IDS }}     # 3302157
+      COOKIE: ${{ secrets.COOKIE }}             # 完整 cookie
+      CSRF_TOKEN: ${{ secrets.CSRF_TOKEN }}     # x-csrf-token
       TIMEOUT: "20"
-      SERVER_LIST_PATH: "/"                     # 可按需改成你的“Servers”列表页路径
-      VIEW_PATH_TEMPLATE: "/server/{id}"        # 如果你的“View”是 /servers/{id}/view，就改为 "/servers/{id}/view"
+      VIEW_PATH_TEMPLATE: "/server/{id}/free-plan"  # 仅用于续期
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,5 +23,5 @@ jobs:
           python-version: "3.11"
       - name: Install deps
         run: pip install --no-cache-dir requests
-      - name: Run auto-start (UI flow)
+      - name: Run auto-renewal
         run: python leme_cookie_ui_autostart.py
