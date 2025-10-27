@@ -48,16 +48,18 @@ def renew_server(session: requests.Session, base: str, sid: str, timeout: int) -
         f"1\r\n"
         f"--{boundary}--\r\n"
     )
-    r = session.post(url, data=body, timeout=timeout)
-    if r.status_code == 200:
-        return True, "200 OK"
-    return False, f"{r.status_code} {r.text[:300]}"
+    try:
+        r = session.post(url, data=body, timeout=timeout)
+        if r.status_code == 200:
+            return True, "200 OK"
+        return False, f"{r.status_code} {r.text[:300]}"
+    except Exception as e:
+        return False, f"Error: {str(e)}"
 
 def main():
     base = os.getenv("PANEL_BASE", "https://lemehost.com").rstrip("/")
     sid = os.getenv("SERVER_IDS", "3302157").split(",")[0].strip()
     cookie_str = os.getenv("COOKIE", "")
-    csrf_token = os.getenv("CSRF_TOKEN")
     timeout = int(os.getenv("TIMEOUT", "20"))
     ua = os.getenv("USER_AGENT")
 
@@ -65,13 +67,11 @@ def main():
         log("ERROR: 缺少必要环境变量 PANEL_BASE / COOKIE")
         sys.exit(2)
 
-    session = build_session(cookie_str, csrf_token, ua)
-
-    while True:
-        log(f"Attempting renewal for server {sid}...")
-        ok, info = renew_server(session, base, sid, timeout)
-        log(f"Renewal result: {info}")
-        time.sleep(300)  # 每 5 分钟
+    session = build_session(cookie_str, None, ua)
+    log(f"Attempting renewal for server {sid}...")
+    ok, info = renew_server(session, base, sid, timeout)
+    log(f"Renewal result: {info}")
+    sys.exit(0 if ok else 1)
 
 if __name__ == "__main__":
     main()
